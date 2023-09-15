@@ -8,7 +8,7 @@ from peft import AutoPeftModelForCausalLM, LoraConfig, get_peft_model, prepare_m
 from utils import find_all_linear_names, print_trainable_parameters
 
 output_dir="./results"
-model_name ="NousResearch/Llama-2-7b-hf"
+model_name ="codellama/CodeLlama-7b-Instruct-hf"
 
 dataset = load_dataset("json", data_files="conversations.json",split="train")
 
@@ -22,8 +22,8 @@ base_model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.
 base_model.config.use_cache = False
 base_model = prepare_model_for_kbit_training(base_model)
 
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-tokenizer.pad_token = tokenizer.eos_token
+tokenizer = AutoTokenizer.from_pretrained(model_name, add_bos_token=False, add_eos_token=True)
+tokenizer.pad_token_id = 18610
 tokenizer.padding_side = "right"  # Fix weird overflow issue with fp16 training
 
 # Change the LORA hyperparameters accordingly to fit your use case
@@ -52,7 +52,7 @@ training_args = TrainingArguments(
     gradient_accumulation_steps=4,
     gradient_checkpointing =True,
     max_grad_norm= 0.3,
-    num_train_epochs=15, 
+    num_train_epochs=5, 
     learning_rate=2e-4,
     bf16=True,
     save_total_limit=3,
@@ -68,7 +68,7 @@ trainer = SFTTrainer(
     train_dataset=dataset,
     tokenizer=tokenizer,
     max_seq_length=2048,
-    formatting_func=formatting_prompts_func,
+    dataset_text_field="text",
     args=training_args
 )
 
